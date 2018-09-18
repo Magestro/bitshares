@@ -65,7 +65,7 @@ type BitsharesAPI interface {
 	SetSubscribeCallback(notifyID int, clearFilter bool) error
 	SubscribeToMarket(notifyID int, base types.GrapheneObject, quote types.GrapheneObject) error
 	UnsubscribeFromMarket(base types.GrapheneObject, quote types.GrapheneObject) error
-	Get24Volume(base types.GrapheneObject, quote types.GrapheneObject) (types.AssetAmounts, error)
+	Get24Volume(base types.GrapheneObject, quote types.GrapheneObject) (types.AssetAmount, error)
 
 	//Wallet API functions
 	WalletListAccountBalances(account types.GrapheneObject) (types.AssetAmounts, error)
