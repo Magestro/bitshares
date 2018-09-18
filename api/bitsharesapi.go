@@ -430,14 +430,14 @@ func (p *bitsharesAPI) GetAccountBalances(account types.GrapheneObject, assets .
 
 // Get24Volume
 func (p *bitsharesAPI) Get24Volume(base types.GrapheneObject, quote types.GrapheneObject) (types.AssetAmount, error) {
+	ret := types.AssetAmount{}
 	resp, err := p.wsClient.CallAPI(p.databaseAPIID, "get_24_volume", base.ID(), quote.ID())
 	if err != nil {
-		return nil, err
+		return ret, err
 	}
 
 	logging.DDumpJSON("get_24_volume <", resp)
 
-	ret := types.AssetAmount{}
 	if err := ffjson.Unmarshal(util.ToBytes(resp), &ret); err != nil {
 		return ret, errors.Annotate(err, "unmarshal AssetAmounts")
 	}
