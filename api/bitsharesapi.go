@@ -29,7 +29,6 @@ type BitsharesAPI interface {
 	Close() error
 	Connect() error
 	DatabaseAPIID() int
-	CryptoAPIID() int
 	HistoryAPIID() int
 	BroadcastAPIID() int
 	SetCredentials(username, password string)
@@ -89,7 +88,6 @@ type bitsharesAPI struct {
 	password       string
 	databaseAPIID  int
 	historyAPIID   int
-	cryptoAPIID    int
 	broadcastAPIID int
 }
 
@@ -393,7 +391,7 @@ func (p *bitsharesAPI) GetAccounts(accounts ...types.GrapheneObject) (types.Acco
 	return ret, nil
 }
 
-//GetDynamicGlobalProperties returns essential runtime properties of bitshares network.
+//GetDynamicGlobalProperties returns essential runtime properties of bitshares network
 func (p *bitsharesAPI) GetDynamicGlobalProperties() (*types.DynamicGlobalProperties, error) {
 	resp, err := p.wsClient.CallAPI(0, "get_dynamic_global_properties", types.EmptyParams)
 	if err != nil {
@@ -428,8 +426,8 @@ func (p *bitsharesAPI) GetAccountBalances(account types.GrapheneObject, assets .
 	return ret, nil
 }
 
-// Get24Volume
-func (p *bitsharesAPI) Get24Volume(base types.GrapheneObject, quote types.GrapheneObject) (ret types.Volume24, err error) {
+// Get24Volume returns the base:quote assets 24h volume
+func (p *bitsharesAPI) Get24Volume(base, quote types.GrapheneObject) (ret types.Volume24, err error) {
 	resp, err := p.wsClient.CallAPI(p.databaseAPIID, "get_24_volume", base.ID(), quote.ID())
 	if err != nil {
 		return
@@ -506,7 +504,7 @@ func (p *bitsharesAPI) GetLimitOrders(base, quote types.GrapheneObject, limit in
 	return ret, nil
 }
 
-//GetLimitOrders the order book for the market base:quote.
+//GetOrderBook returns the OrderBook for the market base:quote.
 func (p *bitsharesAPI) GetOrderBook(base, quote types.GrapheneObject, depth int) (ret types.OrderBook, err error) {
 
 	resp, err := p.wsClient.CallAPI(0, "get_order_book", base.ID(), quote.ID(), depth)
@@ -754,10 +752,6 @@ func (p *bitsharesAPI) HistoryAPIID() int {
 	return p.historyAPIID
 }
 
-func (p *bitsharesAPI) CryptoAPIID() int {
-	return p.cryptoAPIID
-}
-
 //CallWsAPI invokes a websocket API call
 func (p *bitsharesAPI) CallWsAPI(apiID int, method string, args ...interface{}) (interface{}, error) {
 	return p.wsClient.CallAPI(apiID, method, args...)
@@ -832,11 +826,6 @@ func (p *bitsharesAPI) getAPIIDs() (err error) {
 		return errors.Annotate(err, "network")
 	}
 
-	//p.cryptoAPIID, err = p.getAPIID("crypto")
-	//if err != nil {
-	//	return errors.Annotate(err, "crypto")
-	//}
-
 	return nil
 }
 
@@ -876,7 +865,6 @@ func New(wsEndpointURL, rpcEndpointURL string) BitsharesAPI {
 		databaseAPIID:  InvalidApiID,
 		historyAPIID:   InvalidApiID,
 		broadcastAPIID: InvalidApiID,
-		cryptoAPIID:    InvalidApiID,
 	}
 
 	api.wsClient = NewSimpleClientProvider(wsEndpointURL, api)
@@ -901,7 +889,6 @@ func NewWithAutoEndpoint(startupEndpointURL, rpcEndpointURL string) (BitsharesAP
 		databaseAPIID:  InvalidApiID,
 		historyAPIID:   InvalidApiID,
 		broadcastAPIID: InvalidApiID,
-		cryptoAPIID:    InvalidApiID,
 	}
 
 	pr, err := NewBestNodeClientProvider(startupEndpointURL, api)
