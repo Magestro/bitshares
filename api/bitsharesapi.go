@@ -24,7 +24,6 @@ const (
 )
 
 type BitsharesAPI interface {
-
 	//Common functions
 	CallWsAPI(apiID int, method string, args ...interface{}) (interface{}, error)
 	Close() error
@@ -54,6 +53,7 @@ type BitsharesAPI interface {
 	GetChainID() (string, error)
 	GetDynamicGlobalProperties() (*types.DynamicGlobalProperties, error)
 	GetLimitOrders(base, quote types.GrapheneObject, limit int) (types.LimitOrders, error)
+	GetOrderBook(base, quote types.GrapheneObject, depth int) (types.OrderBook, error)
 	GetMarginPositions(accountID types.GrapheneObject) (types.CallOrders, error)
 	GetObjects(objectIDs ...types.GrapheneObject) ([]interface{}, error)
 	GetPotentialSignatures(tx *types.SignedTransaction) (types.PublicKeys, error)
@@ -65,6 +65,7 @@ type BitsharesAPI interface {
 	SetSubscribeCallback(notifyID int, clearFilter bool) error
 	SubscribeToMarket(notifyID int, base types.GrapheneObject, quote types.GrapheneObject) error
 	UnsubscribeFromMarket(base types.GrapheneObject, quote types.GrapheneObject) error
+	Get24Volume(base types.GrapheneObject, quote types.GrapheneObject) (types.Volume24, error)
 
 	//Wallet API functions
 	WalletListAccountBalances(account types.GrapheneObject) (types.AssetAmounts, error)
@@ -427,6 +428,23 @@ func (p *bitsharesAPI) GetAccountBalances(account types.GrapheneObject, assets .
 	return ret, nil
 }
 
+// Get24Volume
+func (p *bitsharesAPI) Get24Volume(base types.GrapheneObject, quote types.GrapheneObject) (ret types.Volume24, err error) {
+	resp, err := p.wsClient.CallAPI(p.databaseAPIID, "get_24_volume", base.ID(), quote.ID())
+	if err != nil {
+		return
+	}
+
+	logging.DDumpJSON("get_24_volume <", resp)
+
+	if err = ffjson.Unmarshal(util.ToBytes(resp), &ret); err != nil {
+		err = errors.Annotate(err, "unmarshal Volume24")
+		return
+	}
+
+	return
+}
+
 //ListAssets retrieves assets
 //lowerBoundSymbol: Lower bound of symbol names to retrieve
 //limit: Maximum number of assets to fetch, if the constant AssetsListAll is passed, all existing assets will be retrieved.
@@ -452,7 +470,7 @@ func (p *bitsharesAPI) ListAssets(lowerBoundSymbol string, limit int) (types.Ass
 
 //GetRequiredFees calculates the required fee for each operation by the specified asset type.
 func (p *bitsharesAPI) GetRequiredFees(ops types.Operations, feeAsset types.GrapheneObject) (types.AssetAmounts, error) {
-	resp, err := p.wsClient.CallAPI(0, "get_required_fees", ops.Types(), feeAsset.ID())
+	resp, err := p.wsClient.CallAPI(0, "get_required_fees", ops.Envelopes(), feeAsset.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -486,6 +504,24 @@ func (p *bitsharesAPI) GetLimitOrders(base, quote types.GrapheneObject, limit in
 	}
 
 	return ret, nil
+}
+
+//GetLimitOrders the order book for the market base:quote.
+func (p *bitsharesAPI) GetOrderBook(base, quote types.GrapheneObject, depth int) (ret types.OrderBook, err error) {
+
+	resp, err := p.wsClient.CallAPI(0, "get_order_book", base.ID(), quote.ID(), depth)
+	if err != nil {
+		return
+	}
+
+	logging.DDumpJSON("get_order_book <", resp)
+
+	if err = ffjson.Unmarshal(util.ToBytes(resp), &ret); err != nil {
+		err = errors.Annotate(err, "unmarshal LimitOrders")
+		return
+	}
+
+	return
 }
 
 //GetSettleOrders returns SettleOrders type.
@@ -796,10 +832,10 @@ func (p *bitsharesAPI) getAPIIDs() (err error) {
 		return errors.Annotate(err, "network")
 	}
 
-	p.cryptoAPIID, err = p.getAPIID("crypto")
-	if err != nil {
-		return errors.Annotate(err, "crypto")
-	}
+	//p.cryptoAPIID, err = p.getAPIID("crypto")
+	//if err != nil {
+	//	return errors.Annotate(err, "crypto")
+	//}
 
 	return nil
 }
