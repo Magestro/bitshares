@@ -78,6 +78,17 @@ func (j *Block) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		buf.Write(obj)
 
 	}
+	buf.WriteString(`,"block_id":`)
+
+	{
+
+		obj, err = j.BlockID.MarshalJSON()
+		if err != nil {
+			return err
+		}
+		buf.Write(obj)
+
+	}
 	buf.WriteString(`,"timestamp":`)
 
 	{
@@ -89,7 +100,24 @@ func (j *Block) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		buf.Write(obj)
 
 	}
-	buf.WriteString(`,"transactions":`)
+	buf.WriteByte(',')
+	if j.SigningKey != nil {
+		if true {
+			buf.WriteString(`"signing_key":`)
+
+			{
+
+				obj, err = j.SigningKey.MarshalJSON()
+				if err != nil {
+					return err
+				}
+				buf.Write(obj)
+
+			}
+			buf.WriteByte(',')
+		}
+	}
+	buf.WriteString(`"transactions":`)
 	if j.Transactions != nil {
 		buf.WriteString(`[`)
 		for i, v := range j.Transactions {
@@ -100,6 +128,28 @@ func (j *Block) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 			err = buf.Encode(&v)
 			if err != nil {
 				return err
+			}
+		}
+		buf.WriteString(`]`)
+	} else {
+		buf.WriteString(`null`)
+	}
+	buf.WriteString(`,"transaction_ids":`)
+	if j.TransactionIDs != nil {
+		buf.WriteString(`[`)
+		for i, v := range j.TransactionIDs {
+			if i != 0 {
+				buf.WriteString(`,`)
+			}
+
+			{
+
+				obj, err = v.MarshalJSON()
+				if err != nil {
+					return err
+				}
+				buf.Write(obj)
+
 			}
 		}
 		buf.WriteString(`]`)
@@ -139,9 +189,15 @@ const (
 
 	ffjtBlockPrevious
 
+	ffjtBlockBlockID
+
 	ffjtBlockTimeStamp
 
+	ffjtBlockSigningKey
+
 	ffjtBlockTransactions
+
+	ffjtBlockTransactionIDs
 
 	ffjtBlockExtensions
 )
@@ -154,9 +210,15 @@ var ffjKeyBlockWitnessSignature = []byte("witness_signature")
 
 var ffjKeyBlockPrevious = []byte("previous")
 
+var ffjKeyBlockBlockID = []byte("block_id")
+
 var ffjKeyBlockTimeStamp = []byte("timestamp")
 
+var ffjKeyBlockSigningKey = []byte("signing_key")
+
 var ffjKeyBlockTransactions = []byte("transactions")
+
+var ffjKeyBlockTransactionIDs = []byte("transaction_ids")
 
 var ffjKeyBlockExtensions = []byte("extensions")
 
@@ -221,6 +283,14 @@ mainparse:
 			} else {
 				switch kn[0] {
 
+				case 'b':
+
+					if bytes.Equal(ffjKeyBlockBlockID, kn) {
+						currentKey = ffjtBlockBlockID
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
 				case 'e':
 
 					if bytes.Equal(ffjKeyBlockExtensions, kn) {
@@ -233,6 +303,14 @@ mainparse:
 
 					if bytes.Equal(ffjKeyBlockPrevious, kn) {
 						currentKey = ffjtBlockPrevious
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				case 's':
+
+					if bytes.Equal(ffjKeyBlockSigningKey, kn) {
+						currentKey = ffjtBlockSigningKey
 						state = fflib.FFParse_want_colon
 						goto mainparse
 					}
@@ -251,6 +329,11 @@ mainparse:
 
 					} else if bytes.Equal(ffjKeyBlockTransactions, kn) {
 						currentKey = ffjtBlockTransactions
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
+					} else if bytes.Equal(ffjKeyBlockTransactionIDs, kn) {
+						currentKey = ffjtBlockTransactionIDs
 						state = fflib.FFParse_want_colon
 						goto mainparse
 					}
@@ -276,14 +359,32 @@ mainparse:
 					goto mainparse
 				}
 
+				if fflib.EqualFoldRight(ffjKeyBlockTransactionIDs, kn) {
+					currentKey = ffjtBlockTransactionIDs
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
 				if fflib.EqualFoldRight(ffjKeyBlockTransactions, kn) {
 					currentKey = ffjtBlockTransactions
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
 
+				if fflib.EqualFoldRight(ffjKeyBlockSigningKey, kn) {
+					currentKey = ffjtBlockSigningKey
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
 				if fflib.EqualFoldRight(ffjKeyBlockTimeStamp, kn) {
 					currentKey = ffjtBlockTimeStamp
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyBlockBlockID, kn) {
+					currentKey = ffjtBlockBlockID
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
@@ -341,11 +442,20 @@ mainparse:
 				case ffjtBlockPrevious:
 					goto handle_Previous
 
+				case ffjtBlockBlockID:
+					goto handle_BlockID
+
 				case ffjtBlockTimeStamp:
 					goto handle_TimeStamp
 
+				case ffjtBlockSigningKey:
+					goto handle_SigningKey
+
 				case ffjtBlockTransactions:
 					goto handle_Transactions
+
+				case ffjtBlockTransactionIDs:
+					goto handle_TransactionIDs
 
 				case ffjtBlockExtensions:
 					goto handle_Extensions
@@ -464,6 +574,31 @@ handle_Previous:
 	state = fflib.FFParse_after_value
 	goto mainparse
 
+handle_BlockID:
+
+	/* handler: j.BlockID type=types.Buffer kind=slice quoted=false*/
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			tbuf, err := fs.CaptureField(tok)
+			if err != nil {
+				return fs.WrapErr(err)
+			}
+
+			err = j.BlockID.UnmarshalJSON(tbuf)
+			if err != nil {
+				return fs.WrapErr(err)
+			}
+		}
+		state = fflib.FFParse_after_value
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
 handle_TimeStamp:
 
 	/* handler: j.TimeStamp type=types.Time kind=struct quoted=false*/
@@ -479,6 +614,37 @@ handle_TimeStamp:
 			}
 
 			err = j.TimeStamp.UnmarshalJSON(tbuf)
+			if err != nil {
+				return fs.WrapErr(err)
+			}
+		}
+		state = fflib.FFParse_after_value
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_SigningKey:
+
+	/* handler: j.SigningKey type=types.PublicKey kind=struct quoted=false*/
+
+	{
+		if tok == fflib.FFTok_null {
+
+			j.SigningKey = nil
+
+		} else {
+
+			tbuf, err := fs.CaptureField(tok)
+			if err != nil {
+				return fs.WrapErr(err)
+			}
+
+			if j.SigningKey == nil {
+				j.SigningKey = new(PublicKey)
+			}
+
+			err = j.SigningKey.UnmarshalJSON(tbuf)
 			if err != nil {
 				return fs.WrapErr(err)
 			}
@@ -548,6 +714,79 @@ handle_Transactions:
 				}
 
 				j.Transactions = append(j.Transactions, tmpJTransactions)
+
+				wantVal = false
+			}
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_TransactionIDs:
+
+	/* handler: j.TransactionIDs type=types.Buffers kind=slice quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_left_brace && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for Buffers", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+			j.TransactionIDs = nil
+		} else {
+
+			j.TransactionIDs = []Buffer{}
+
+			wantVal := true
+
+			for {
+
+				var tmpJTransactionIDs Buffer
+
+				tok = fs.Scan()
+				if tok == fflib.FFTok_error {
+					goto tokerror
+				}
+				if tok == fflib.FFTok_right_brace {
+					break
+				}
+
+				if tok == fflib.FFTok_comma {
+					if wantVal == true {
+						// TODO(pquerna): this isn't an ideal error message, this handles
+						// things like [,,,] as an array value.
+						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+					}
+					continue
+				} else {
+					wantVal = true
+				}
+
+				/* handler: tmpJTransactionIDs type=types.Buffer kind=slice quoted=false*/
+
+				{
+					if tok == fflib.FFTok_null {
+
+					} else {
+
+						tbuf, err := fs.CaptureField(tok)
+						if err != nil {
+							return fs.WrapErr(err)
+						}
+
+						err = tmpJTransactionIDs.UnmarshalJSON(tbuf)
+						if err != nil {
+							return fs.WrapErr(err)
+						}
+					}
+					state = fflib.FFParse_after_value
+				}
+
+				j.TransactionIDs = append(j.TransactionIDs, tmpJTransactionIDs)
 
 				wantVal = false
 			}

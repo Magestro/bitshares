@@ -1,4 +1,4 @@
-git stat# bitshares
+# bitshares
 
 A Bitshares API consuming a websocket connection to an active full node. If you need wallet features, specify an optional RPC connection to your local `cli_wallet`. 
 Look for several examples in tests. This is work in progress and may have breaking changes. 

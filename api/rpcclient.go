@@ -49,6 +49,7 @@ func (p *rpcClient) CallAPI(method string, args ...interface{}) (interface{}, er
 	p.req.Method = method
 	p.req.ID = uint64(rand.Int63())
 	p.req.Params = args
+	p.res = rpcResponseString{}
 
 	if err := p.Encode(&p.req); err != nil {
 		return nil, errors.Annotate(err, "Encode")
@@ -61,6 +62,7 @@ func (p *rpcClient) CallAPI(method string, args ...interface{}) (interface{}, er
 		return nil, errors.Annotate(err, "NewRequest")
 	}
 
+	req.Close = true
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
