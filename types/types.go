@@ -35,6 +35,7 @@ var (
 	ErrNoVerifyingKeyFound          = fmt.Errorf("no verifying key found")
 	ErrInvalidDigestLength          = fmt.Errorf("invalid digest length")
 	ErrInvalidPrivateKeyCurve       = fmt.Errorf("invalid PrivateKey curve")
+	ErrCurrentChainConfigIsNotSet   = fmt.Errorf("current chain config is not set")
 )
 
 var (
@@ -48,6 +49,12 @@ const (
 	WorkerInitializerTypeRefund WorkerInitializerType = iota
 	WorkerInitializerTypeVestingBalance
 	WorkerInitializerTypeBurn
+)
+
+type CallOrderUpdateExtensionsType UInt8
+
+const (
+	CallOrderUpdateExtensionsTypeTargetRatio CallOrderUpdateExtensionsType = iota
 )
 
 type AccountCreateExtensionsType UInt8
@@ -503,6 +510,7 @@ func (t Time) IsZero() bool {
 }
 
 type Buffer []byte
+type Buffers []Buffer
 
 func (p *Buffer) UnmarshalJSON(data []byte) error {
 	var b string
